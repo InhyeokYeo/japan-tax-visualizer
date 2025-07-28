@@ -759,7 +759,22 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 15 }},
-                        tooltip: { callbacks: { label: (c) => `${c.label}: ${new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(c.parsed)}` }},
+                        tooltip: { 
+                            callbacks: { 
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed;
+                                    const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / sum) * 100).toFixed(1) + '%';
+                                    label += new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
+                                    label += ` (${percentage})`;
+                                    return label;
+                                }
+                            }
+                        },
                         datalabels: {
                             formatter: (value, ctx) => {
                                 let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
@@ -795,7 +810,22 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 15 }},
-                        tooltip: { callbacks: { label: (c) => `${c.label}: ${new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(c.parsed)}` }},
+                        tooltip: { 
+                            callbacks: { 
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed;
+                                    const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / sum) * 100).toFixed(1) + '%';
+                                    label += new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
+                                    label += ` (${percentage})`;
+                                    return label;
+                                }
+                            }
+                        },
                         datalabels: {
                              formatter: (value, ctx) => {
                                 let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
