@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたの手取りと税金、どうなってる？💰 | 税・社会保障・手取り 見える化サイト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.jsのデータラベルを表示するためのプラグインを追加 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .result-card {
+            transition: all 0.3s ease-in-out;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        .result-card-container {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .result-card-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: #334155;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .btn-primary {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            transform: scale(1.02);
+        }
+         .btn-primary:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 border-b border-slate-200 shadow-sm">
+        <div class="container mx-auto px-4 py-3">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">あなたの手取りと税金、どうなってる？💰</h1>
+            <p class="text-sm text-slate-600">税・社会保障・手取り 見える化サイト</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Input Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 sticky top-24">
+                    <h3 class="text-2xl font-bold mb-6 text-slate-800">あなたの情報を入力</h3>
+
+                    <div class="space-y-4">
+                        <!-- 年収 -->
+                        <div>
+                            <label for="annual-income" class="block text-sm font-medium text-slate-700 mb-1">あなたの年収（額面）</label>
+                            <div class="flex items-center bg-slate-100 rounded-lg focus-within:ring-2 focus-within:ring-indigo-400">
+                                <input type="number" id="annual-income" class="w-full bg-transparent text-2xl font-bold p-3 text-indigo-600 focus:outline-none" value="500" placeholder="例: 500">
+                                <span class="text-lg font-semibold pr-4 text-slate-600">万円</span>
+                            </div>
+                        </div>
+                        <!-- 年齢 -->
+                        <div>
+                            <label for="age" class="block text-sm font-medium text-slate-700 mb-1">年齢</label>
+                            <div class="flex items-center bg-slate-100 rounded-lg focus-within:ring-2 focus-within:ring-indigo-400">
+                                <input type="number" id="age" class="w-full bg-transparent text-2xl font-bold p-3 text-slate-800 focus:outline-none" value="35" placeholder="例: 35">
+                                <span class="text-lg font-semibold pr-4 text-slate-600">歳</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 詳細設定トグル -->
+                    <details class="group mt-6">
+                        <summary class="text-lg font-semibold text-slate-700 cursor-pointer list-none flex justify-between items-center p-2 rounded-lg hover:bg-slate-100">
+                            <span>詳細設定</span>
+                            <svg class="w-5 h-5 transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+
+                        <div class="mt-6 space-y-4">
+                            <!-- 働き方 -->
+                            <div>
+                                <label for="work-type" class="block text-sm font-medium text-slate-600">働き方</label>
+                                <select id="work-type" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                    <option value="company-employee">会社員・公務員</option>
+                                    <option value="freelance">自営業・フリーランス</option>
+                                </select>
+                            </div>
+                            <!-- 居住地 -->
+                            <div>
+                                <label for="prefecture" class="block text-sm font-medium text-slate-600">お住まいの都道府県</label>
+                                <select id="prefecture" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                    <!-- Options will be populated by JS -->
+                                </select>
+                            </div>
+                            <!-- 家族構成 -->
+                            <div class="pt-4 border-t">
+                                <p class="text-sm font-medium text-slate-600 mb-2">家族構成</p>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="spouse" class="block text-xs text-slate-500">配偶者</label>
+                                        <select id="spouse" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                            <option value="none">いない / 共働き(配偶者年収150万超)</option>
+                                            <option value="dependent">いる (専業主婦・主夫 / 年収150万以下)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="dependents-jhs" class="block text-xs text-slate-500">扶養している子ども（中学生以下）</label>
+                                        <select id="dependents-jhs" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                            <option value="0">0人</option>
+                                            <option value="1">1人</option>
+                                            <option value="2">2人</option>
+                                            <option value="3">3人以上</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="dependents-hs" class="block text-xs text-slate-500">扶養している子ども（高校生の年代）</label>
+                                        <select id="dependents-hs" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                            <option value="0">0人</option>
+                                            <option value="1">1人</option>
+                                            <option value="2">2人</option>
+                                            <option value="3">3人以上</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="dependents-specific" class="block text-xs text-slate-500">扶養している親族（大学生など19歳〜69歳）</label>
+                                        <select id="dependents-specific" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                            <option value="0">0人</option>
+                                            <option value="1">1人</option>
+                                            <option value="2">2人</option>
+                                            <option value="3">3人以上</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="dependents-elderly" class="block text-xs text-slate-500">扶養している親族（70歳以上）</label>
+                                        <select id="dependents-elderly" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                            <option value="0">0人</option>
+                                            <option value="1">1人</option>
+                                            <option value="2">2人</option>
+                                            <option value="3">3人以上</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- ライフスタイル -->
+                            <div class="pt-4 border-t">
+                                <p class="text-sm font-medium text-slate-600 mb-2">ライフスタイル（その他諸税の推計に使用）</p>
+                                <div class="space-y-4">
+                                    <div><label for="home-ownership" class="block text-xs text-slate-500">不動産所有（固定資産税など）</label><select id="home-ownership" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none"><option value="none">賃貸</option><option value="owned_low">持ち家（評価額2,000万円未満）</option><option value="owned_high">持ち家（評価額2,000万円以上）</option></select></div>
+                                    <div><label for="car-ownership" class="block text-xs text-slate-500">自動車（自動車税・重量税など）</label><select id="car-ownership" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none"><option value="none">所有していない</option><option value="light">軽自動車</option><option value="normal">普通自動車</option></select></div>
+                                    <div><label for="smoking-habit" class="block text-xs text-slate-500">喫煙（たばこ税）</label><select id="smoking-habit" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none"><option value="none">吸わない</option><option value="sometimes">時々吸う</option><option value="daily">毎日吸う</option></select></div>
+                                    <div><label for="drinking-habit" class="block text-xs text-slate-500">飲酒（酒税）</label><select id="drinking-habit" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none"><option value="none">飲まない</option><option value="sometimes">週に1〜2回飲む</option><option value="often">週に3回以上飲む</option></select></div>
+                                    <div><label for="golf-habit" class="block text-xs text-slate-500">ゴルフ（ゴルフ場利用税）</label><select id="golf-habit" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none"><option value="none">しない</option><option value="sometimes">時々する（年10回程度）</option><option value="often">頻繁にする（年30回程度）</option></select></div>
+                                </div>
+                            </div>
+                            <!-- 年金受給 -->
+                            <div id="pension-input-container" class="pt-4 border-t hidden">
+                                <p class="text-sm font-medium text-slate-600 mb-2">年金</p>
+                                <div>
+                                    <label for="is-pension-recipient" class="block text-xs text-slate-500">公的年金を受給していますか？</label>
+                                    <select id="is-pension-recipient" class="w-full mt-1 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none">
+                                        <option value="no">いいえ</option>
+                                        <option value="yes">はい</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                    
+                    <button id="calculate-btn" class="w-full mt-8 bg-indigo-600 text-white font-bold text-lg py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-300 shadow-lg shadow-indigo-500/30 btn-primary">
+                        この内容で計算する
+                    </button>
+
+                    <div class="mt-4 text-xs text-slate-500">
+                        <p>※これはあくまで概算シミュレーションです。実際の金額とは異なる場合があります。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div id="result-container" class="lg:col-span-2 space-y-8 result-card-container">
+                <!-- Story-based Summary -->
+                <div class="result-card bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4 text-slate-800">あなたのお金の流れ（年間）</h3>
+                    <div class="space-y-6">
+                        <!-- 手取り -->
+                        <div class="p-5 bg-green-50 rounded-xl border border-green-200 flex items-start space-x-4">
+                            <div class="flex-shrink-0 h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-lg font-semibold text-green-800">あなたの手取り額（可処分所得）</p>
+                                <p id="net-income" class="text-4xl font-extrabold text-green-600 mt-1">---万円</p>
+                            </div>
+                        </div>
+                        <!-- 控除 -->
+                        <div class="p-5 bg-red-50 rounded-xl border border-red-200">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0 h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-red-800">（年収から、主に下記が控除されるためです）</p>
+                                    <div id="burden-breakdown-summary" class="text-lg text-red-800 mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- サポート -->
+                        <div class="p-5 bg-blue-50 rounded-xl border border-blue-200">
+                            <div class="flex items-start space-x-4">
+                               <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-800">（一方で、あなたが受けられる主な公的サポートはこちらです）</p>
+                                    <p id="summary-benefit" class="text-lg text-blue-800 mt-2">公的サポート合計 <span class="text-2xl font-bold">---万円</span></p>
+                                    <div id="benefit-breakdown" class="mt-2 space-y-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                         <!-- 純負担 -->
+                         <div class="p-5 bg-slate-100 rounded-xl mt-6 border-t-4 border-slate-300">
+                            <h4 class="font-semibold text-slate-600 mb-2">あなたの社会への貢献額（純負担）
+                                <div class="tooltip inline-block">
+                                    <span class="text-xs bg-slate-200 text-slate-600 rounded-full px-2 py-0.5">?</span>
+                                    <span class="tooltip-text">あなたが支払った税金・社会保険料から、あなたが受けられる平均的な公的サポートを差し引いた、社会全体への実質的な貢献額のイメージです。</span>
+                                </div>
+                            </h4>
+                            <p id="net-contribution" class="text-4xl font-extrabold text-slate-700">---万円</p>
+                            <p id="net-contribution-detail" class="text-slate-500 mt-1 text-sm">（総負担額 - 公的サポート合計）</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="result-card bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h4 class="font-semibold text-slate-600 mb-4">あなたの負担の内訳</h4>
+                        <div class="h-64"><canvas id="burden-chart"></canvas></div>
+                    </div>
+                    <div class="result-card bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-semibold text-slate-600">負担額の使われ方</h4>
+                        </div>
+                        <div class="h-64"><canvas id="spending-chart"></canvas></div>
+                    </div>
+                </div>
+                
+                <!-- Calculation Basis -->
+                <div class="result-card bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <details>
+                        <summary class="text-lg font-semibold text-slate-700 cursor-pointer list-none">
+                            計算の前提と出典はこちら
+                        </summary>
+                        <div id="basis-text-container" class="mt-4 text-sm text-slate-600 space-y-4 prose prose-sm max-w-none">
+                             <!-- Populated by JS -->
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Chart instances
+        let burdenChart = null;
+        let spendingChart = null;
+
+        // DOM Elements
+        const calculateBtn = document.getElementById('calculate-btn');
+        const resultContainer = document.getElementById('result-container');
+        
+        const annualIncomeInput = document.getElementById('annual-income');
+        const ageInput = document.getElementById('age');
+        const prefectureSelect = document.getElementById('prefecture');
+        const workTypeSelect = document.getElementById('work-type');
+        const dependentsHsSelect = document.getElementById('dependents-hs');
+        const dependentsJhsSelect = document.getElementById('dependents-jhs');
+        const dependentsSpecificSelect = document.getElementById('dependents-specific');
+        const dependentsElderlySelect = document.getElementById('dependents-elderly');
+        const spouseSelect = document.getElementById('spouse');
+        const homeOwnershipSelect = document.getElementById('home-ownership');
+        const carOwnershipSelect = document.getElementById('car-ownership');
+        const smokingHabitSelect = document.getElementById('smoking-habit');
+        const drinkingHabitSelect = document.getElementById('drinking-habit');
+        const golfHabitSelect = document.getElementById('golf-habit');
+        const pensionInputContainer = document.getElementById('pension-input-container');
+        const isPensionRecipientSelect = document.getElementById('is-pension-recipient');
+
+        // Result Elements
+        const netIncomeEl = document.getElementById('net-income');
+        const netContributionEl = document.getElementById('net-contribution');
+        const netContributionDetailEl = document.getElementById('net-contribution-detail');
+        const burdenBreakdownSummaryEl = document.getElementById('burden-breakdown-summary');
+        const summaryBenefitEl = document.querySelector('#summary-benefit span');
+        const benefitBreakdownEl = document.getElementById('benefit-breakdown');
+        const basisTextContainer = document.getElementById('basis-text-container');
+
+        // --- Constants and Data (2025年度ベースの概算値) ---
+        const DATA = {
+            incomeTaxRates: [
+                { limit: 1950000, rate: 0.05 }, { limit: 3300000, rate: 0.10 },
+                { limit: 6950000, rate: 0.20 }, { limit: 9000000, rate: 0.23 },
+                { limit: 18000000, rate: 0.33 }, { limit: 40000000, rate: 0.40 },
+                { limit: Infinity, rate: 0.45 },
+            ],
+            residenceTaxRate: 0.10,
+            residenceTaxFlat: 5000,
+            healthInsuranceRates: { // Note: 2025年度の料率は最新の発表をご確認ください。ここでは2024年度の値を参照しています。
+                hokkaido: { base: 0.1013, kaigo: 0.1175 }, aomori: { base: 0.0967, kaigo: 0.1129 },
+                iwate: { base: 0.0955, kaigo: 0.1117 }, miyagi: { base: 0.0991, kaigo: 0.1153 },
+                akita: { base: 0.0964, kaigo: 0.1126 }, yamagata: { base: 0.0978, kaigo: 0.1140 },
+                fukushima: { base: 0.0964, kaigo: 0.1126 }, ibaraki: { base: 0.0980, kaigo: 0.1142 },
+                tochigi: { base: 0.0985, kaigo: 0.1147 }, gunma: { base: 0.0988, kaigo: 0.1150 },
+                saitama: { base: 0.0985, kaigo: 0.1147 }, chiba: { base: 0.0986, kaigo: 0.1148 },
+                tokyo: { base: 0.1000, kaigo: 0.1162 }, kanagawa: { base: 0.1002, kaigo: 0.1164 },
+                niigata: { base: 0.0952, kaigo: 0.1114 }, toyama: { base: 0.0962, kaigo: 0.1124 },
+                ishikawa: { base: 0.0985, kaigo: 0.1147 }, fukui: { base: 0.0991, kaigo: 0.1153 },
+                yamanashi: { base: 0.0988, kaigo: 0.1150 }, nagano: { base: 0.0972, kaigo: 0.1134 },
+                gifu: { base: 0.0990, kaigo: 0.1152 }, shizuoka: { base: 0.0982, kaigo: 0.1144 },
+                aichi: { base: 0.0996, kaigo: 0.1158 }, mie: { base: 0.0996, kaigo: 0.1158 },
+                shiga: { base: 0.1003, kaigo: 0.1165 }, kyoto: { base: 0.1007, kaigo: 0.1169 },
+                osaka: { base: 0.1034, kaigo: 0.1196 }, hyogo: { base: 0.1021, kaigo: 0.1183 },
+                nara: { base: 0.1012, kaigo: 0.1174 }, wakayama: { base: 0.1009, kaigo: 0.1171 },
+                tottori: { base: 0.0985, kaigo: 0.1147 }, shimane: { base: 0.0994, kaigo: 0.1156 },
+                okayama: { base: 0.1005, kaigo: 0.1167 }, hiroshima: { base: 0.1003, kaigo: 0.1165 },
+                yamaguchi: { base: 0.1017, kaigo: 0.1179 }, tokushima: { base: 0.1022, kaigo: 0.1184 },
+                kagawa: { base: 0.1025, kaigo: 0.1187 }, ehime: { base: 0.1008, kaigo: 0.1170 },
+                kochi: { base: 0.1009, kaigo: 0.1171 }, fukuoka: { base: 0.1045, kaigo: 0.1207 },
+                saga: { base: 0.1051, kaigo: 0.1213 }, nagasaki: { base: 0.1028, kaigo: 0.1190 },
+                kumamoto: { base: 0.1030, kaigo: 0.1192 }, oita: { base: 0.1017, kaigo: 0.1179 },
+                miyazaki: { base: 0.0999, kaigo: 0.1161 }, kagoshima: { base: 0.1019, kaigo: 0.1181 },
+                okinawa: { base: 0.0955, kaigo: 0.1117 }
+            },
+            pensionInsuranceRate: 0.183, // 2017年以降18.3%で固定
+            employmentInsuranceRate: 0.0155, // 2024年度の料率。年度により変動
+            nationalPensionPerMonth: 17510, // 2025年度
+            medicalBenefitByAge: {
+                20: 80000, 30: 100000, 40: 150000, 50: 250000, 60: 400000, 70: 600000
+            },
+            consumptionDataPoints: [
+                { income: 0, expenditure: 0 },
+                { income: 300, expenditure: 225 },
+                { income: 500, expenditure: 325 },
+                { income: 800, expenditure: 440 },
+                { income: 1200, expenditure: 540 },
+                { income: 2000, expenditure: 700 },
+                { income: 5000, expenditure: 1250 },
+                { income: 10000, expenditure: 2000 }
+            ],
+            nationalSpendingRatio: { // 2024年度一般会計歳出予算ベース
+                '社会保障': 0.33, '国債費': 0.24, '地方交付税': 0.14,
+                '公共事業': 0.06, '教育・科学': 0.05, '防衛': 0.07, 'その他': 0.11,
+            },
+            indirectTaxEstimates: {
+                home: { owned_low: 80000, owned_high: 250000 },
+                car: { light: 30000, normal: 60000 },
+                smoking: { sometimes: 40000, daily: 150000 },
+                drinking: { sometimes: 20000, often: 60000 },
+                golf: { sometimes: 8000, often: 24000 }
+            },
+            averagePensionBenefit: 1800000,
+        };
+        const PREFECTURES = {
+            hokkaido: '北海道', aomori: '青森県', iwate: '岩手県', miyagi: '宮城県', akita: '秋田県', yamagata: '山形県',
+            fukushima: '福島県', ibaraki: '茨城県', tochigi: '栃木県', gunma: '群馬県', saitama: '埼玉県', chiba: '千葉県',
+            tokyo: '東京都', kanagawa: '神奈川県', niigata: '新潟県', toyama: '富山県', ishikawa: '石川県', fukui: '福井県',
+            yamanashi: '山梨県', nagano: '長野県', gifu: '岐阜県', shizuoka: '静岡県', aichi: '愛知県', mie: '三重県',
+            shiga: '滋賀県', kyoto: '京都府', osaka: '大阪府', hyogo: '兵庫県', nara: '奈良県', wakayama: '和歌山県',
+            tottori: '鳥取県', shimane: '島根県', okayama: '岡山県', hiroshima: '広島県', yamaguchi: '山口県',
+            tokushima: '徳島県', kagawa: '香川県', ehime: '愛媛県', kochi: '高知県', fukuoka: '福岡県', saga: '佐賀県',
+            nagasaki: '長崎県', kumamoto: '熊本県', oita: '大分県', miyazaki: '宮崎県', kagoshima: '鹿児島県', okinawa: '沖縄県'
+        };
+
+        // --- Initial Setup ---
+        function populatePrefectures() {
+            for (const [key, name] of Object.entries(PREFECTURES)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = name;
+                if (key === 'tokyo') {
+                    option.selected = true;
+                }
+                prefectureSelect.appendChild(option);
+            }
+        }
+
+        function handleAgeChange() {
+            const age = parseInt(ageInput.value);
+            if (age >= 65) {
+                pensionInputContainer.classList.remove('hidden');
+                isPensionRecipientSelect.value = 'yes';
+            } else {
+                pensionInputContainer.classList.add('hidden');
+                isPensionRecipientSelect.value = 'no';
+            }
+        }
+
+        // --- Calculation Logic ---
+        function calculate() {
+            // 1. Get user inputs
+            const income = parseFloat(annualIncomeInput.value) * 10000;
+            const age = parseInt(ageInput.value);
+            if (isNaN(income) || income < 0 || isNaN(age) || age <= 0) {
+                console.error('年収と年齢を正しく入力してください。');
+                return;
+            }
+
+            const prefectureKey = prefectureSelect.value;
+            const workType = workTypeSelect.value;
+            const dependentsHsCount = parseInt(dependentsHsSelect.value);
+            const dependentsJhsCount = parseInt(dependentsJhsSelect.value);
+            const dependentsSpecificCount = parseInt(dependentsSpecificSelect.value);
+            const dependentsElderlyCount = parseInt(dependentsElderlySelect.value);
+            const spouseType = spouseSelect.value;
+            const isPensionRecipient = isPensionRecipientSelect.value === 'yes';
+            
+            // 2. Initialize variables
+            let incomeTax = 0, residenceTax = 0, socialInsurance = 0, consumptionTax = 0;
+            let healthInsurance = 0, pension = 0, employmentInsurance = 0, longTermCareInsurance = 0;
+
+            // 3. Calculate deductions
+            let salaryDeduction = 0;
+            if (workType === 'company-employee') {
+                if (income <= 1625000) salaryDeduction = 550000;
+                else if (income <= 1800000) salaryDeduction = income * 0.4 - 100000;
+                else if (income <= 3600000) salaryDeduction = income * 0.3 + 80000;
+                else if (income <= 6600000) salaryDeduction = income * 0.2 + 440000;
+                else if (income <= 8500000) salaryDeduction = income * 0.1 + 1100000;
+                else salaryDeduction = 1950000;
+            }
+
+            // 4. Calculate social insurance
+            if (income > 0) {
+                if (workType === 'company-employee') {
+                    const isKaigoAge = age >= 40 && age < 65;
+                    const standardMonthlyIncome = Math.min(Math.round(income / 12 / 10000) * 10000, 1390000);
+                    const standardBonus = Math.min(Math.max(0, income - standardMonthlyIncome * 12), 5730000);
+                    const totalStandardIncome = standardMonthlyIncome * 12 + standardBonus;
+
+                    const rates = DATA.healthInsuranceRates[prefectureKey];
+                    const healthRate = isKaigoAge ? rates.kaigo : rates.base;
+                    
+                    const totalHealthInsurance = totalStandardIncome * healthRate / 2;
+                    if(isKaigoAge) {
+                        const kaigoRateOnly = rates.kaigo - rates.base;
+                        longTermCareInsurance = totalStandardIncome * kaigoRateOnly / 2;
+                        healthInsurance = totalHealthInsurance - longTermCareInsurance;
+                    } else {
+                        healthInsurance = totalHealthInsurance;
+                    }
+                    pension = Math.min(income, 7980000) * DATA.pensionInsuranceRate / 2;
+                    employmentInsurance = income * 0.006;
+                    socialInsurance = healthInsurance + longTermCareInsurance + pension + employmentInsurance;
+                } else { // Freelancer
+                    const taxableIncomeForNHI = Math.max(0, income - 480000 - 650000);
+                    healthInsurance = Math.min(taxableIncomeForNHI * 0.1, 1060000);
+                    pension = DATA.nationalPensionPerMonth * 12;
+                    socialInsurance = healthInsurance + pension;
+                }
+            }
+            
+            // 5. Calculate taxes with precise deductions
+            const socialInsuranceDeduction = socialInsurance;
+
+            // For Income Tax
+            const basicDeductionIT = income <= 24000000 ? 480000 : (income <= 24500000 ? 320000 : (income <= 25000000 ? 160000 : 0));
+            const spouseDeductionIT = (spouseType === 'dependent' && income <= 11950000) ? 380000 : 0;
+            const dependentDeductionIT = (dependentsHsCount * 380000) + (dependentsSpecificCount * 630000) + (dependentsElderlyCount * 480000); // 70歳以上は別居を想定
+            const taxableIncomeIT = Math.max(0, income - salaryDeduction - socialInsuranceDeduction - basicDeductionIT - spouseDeductionIT - dependentDeductionIT);
+
+            // For Residence Tax
+            const basicDeductionRT = income <= 24000000 ? 430000 : 0; // Simplified
+            const spouseDeductionRT = (spouseType === 'dependent' && income <= 11950000) ? 330000 : 0; // Simplified
+            const dependentDeductionRT = (dependentsHsCount * 330000) + (dependentsSpecificCount * 450000) + (dependentsElderlyCount * 380000); // 70歳以上は別居を想定
+            const taxableIncomeRT = Math.max(0, income - salaryDeduction - socialInsuranceDeduction - basicDeductionRT - spouseDeductionRT - dependentDeductionRT);
+
+            if (taxableIncomeIT > 0) {
+                let tempTaxable = taxableIncomeIT;
+                let prevLimit = 0;
+                incomeTax = 0;
+                for (const tier of DATA.incomeTaxRates) {
+                    if (tempTaxable <= 0) break;
+                    const taxableInTier = Math.min(tempTaxable, tier.limit - prevLimit);
+                    incomeTax += taxableInTier * tier.rate;
+                    tempTaxable -= taxableInTier;
+                    prevLimit = tier.limit;
+                }
+                incomeTax *= 1.021;
+            }
+            residenceTax = (taxableIncomeRT > 0) ? (taxableIncomeRT * DATA.residenceTaxRate + DATA.residenceTaxFlat) : ((income > 0) ? DATA.residenceTaxFlat : 0);
+
+            // 6. Calculate other taxes
+            const incomeInMan = income / 10000;
+            let consumptionExpenditure = 0;
+            if (incomeInMan > 0) {
+                let lowerBound = DATA.consumptionDataPoints[0];
+                let upperBound = DATA.consumptionDataPoints[DATA.consumptionDataPoints.length - 1];
+
+                for (let i = 1; i < DATA.consumptionDataPoints.length; i++) {
+                    if (incomeInMan <= DATA.consumptionDataPoints[i].income) {
+                        upperBound = DATA.consumptionDataPoints[i];
+                        lowerBound = DATA.consumptionDataPoints[i-1];
+                        break;
+                    }
+                }
+                
+                const incomeRange = upperBound.income - lowerBound.income;
+                const expenditureRange = upperBound.expenditure - lowerBound.expenditure;
+                
+                if (incomeRange > 0) {
+                    const ratio = (incomeInMan - lowerBound.income) / incomeRange;
+                    consumptionExpenditure = (lowerBound.expenditure + (expenditureRange * ratio)) * 10000;
+                } else { 
+                    const lastPoint = DATA.consumptionDataPoints[DATA.consumptionDataPoints.length - 1];
+                    const secondLastPoint = DATA.consumptionDataPoints[DATA.consumptionDataPoints.length - 2];
+                    const lastRate = (lastPoint.expenditure - secondLastPoint.expenditure) / (lastPoint.income - secondLastPoint.income);
+                    consumptionExpenditure = (lastPoint.expenditure + (incomeInMan - lastPoint.income) * lastRate) * 10000;
+                }
+            }
+            consumptionTax = consumptionExpenditure * (10 / 110);
+
+            let otherIndirectTaxes = 0;
+            const homeChoice = homeOwnershipSelect.value;
+            if (homeChoice !== 'none') otherIndirectTaxes += DATA.indirectTaxEstimates.home[homeChoice];
+            const carChoice = carOwnershipSelect.value;
+            if (carChoice !== 'none') otherIndirectTaxes += DATA.indirectTaxEstimates.car[carChoice];
+            const smokingChoice = smokingHabitSelect.value;
+            if (smokingChoice !== 'none') otherIndirectTaxes += DATA.indirectTaxEstimates.smoking[smokingChoice];
+            const drinkingChoice = drinkingHabitSelect.value;
+            if (drinkingChoice !== 'none') otherIndirectTaxes += DATA.indirectTaxEstimates.drinking[drinkingChoice];
+            const golfChoice = golfHabitSelect.value;
+            if (golfChoice !== 'none') otherIndirectTaxes += DATA.indirectTaxEstimates.golf[golfChoice];
+            
+            // 7. Calculate benefits
+            const ageBracket = Math.floor(age / 10) * 10;
+            const medicalBenefit = DATA.medicalBenefitByAge[ageBracket] || DATA.medicalBenefitByAge[70];
+            
+            const allChildrenCount = dependentsJhsCount + dependentsHsCount;
+            let childBenefit = 0;
+            if (allChildrenCount === 1) childBenefit = 120000;
+            else if (allChildrenCount === 2) childBenefit = 120000 * 2;
+            else if (allChildrenCount >= 3) childBenefit = (120000 * 2) + (360000 * (allChildrenCount - 2));
+
+            let pensionBenefit = 0;
+            if (age >= 65 && isPensionRecipient) {
+                pensionBenefit = DATA.averagePensionBenefit;
+            }
+            const publicBenefit = medicalBenefit + childBenefit + pensionBenefit;
+
+            // 8. Final calculations
+            const totalBurden = incomeTax + residenceTax + socialInsurance + consumptionTax + otherIndirectTaxes;
+            const netIncome = income - (incomeTax + residenceTax + socialInsurance);
+            const netContribution = totalBurden - publicBenefit;
+            
+            // 9. Update UI
+            updateUI({
+                netIncome, totalBurden, publicBenefit, netContribution,
+                burdens: {
+                    '所得税': incomeTax, '住民税': residenceTax, '年金保険料': pension,
+                    '健康・介護保険料': healthInsurance + longTermCareInsurance,
+                    '雇用保険料': employmentInsurance, '消費税(推計)': consumptionTax, 'その他諸税(推計)': otherIndirectTaxes,
+                },
+                benefits: {
+                    '医療費補助(年代平均)': medicalBenefit, '児童手当': childBenefit, '年金給付': pensionBenefit
+                },
+                details: {
+                    consumptionExpenditure,
+                    ageBracket,
+                    medicalBenefit,
+                }
+            });
+        }
+
+        // --- UI Update Logic ---
+        function updateUI(results) {
+            const formatYen = (val, unit = '万円') => `${(Math.round(val / 10000))}${unit}`;
+            
+            netIncomeEl.textContent = formatYen(results.netIncome);
+            
+            const directTaxes = results.burdens['所得税'] + results.burdens['住民税'];
+            const directInsurance = results.burdens['年金保険料'] + results.burdens['健康・介護保険料'] + results.burdens['雇用保険料'];
+            const consumptionBurden = results.burdens['消費税(推計)'] + results.burdens['その他諸税(推計)'];
+
+            burdenBreakdownSummaryEl.innerHTML = `
+                <div class="flex justify-between items-baseline">
+                    <span>税金:</span>
+                    <span class="text-xl font-bold">${formatYen(directTaxes)}</span>
+                </div>
+                <div class="flex justify-between items-baseline mt-1">
+                    <span>社会保険料:</span>
+                    <span class="text-xl font-bold">${formatYen(directInsurance)}</span>
+                </div>
+                <hr class="my-2 border-red-200">
+                <div class="flex justify-between items-baseline font-bold">
+                    <span>控除合計:</span>
+                    <span class="text-2xl">${formatYen(directTaxes + directInsurance)}</span>
+                </div>
+            `;
+
+            summaryBenefitEl.textContent = formatYen(results.publicBenefit);
+            netContributionEl.textContent = formatYen(results.netContribution);
+            netContributionDetailEl.textContent = `（所得からの控除 ${formatYen(directTaxes + directInsurance)} + 消費税など ${formatYen(consumptionBurden)} - 公的サポート ${formatYen(results.publicBenefit)}）`;
+            netContributionEl.className = `text-4xl font-extrabold ${results.netContribution >= 0 ? 'text-slate-700' : 'text-red-500'}`;
+            
+            benefitBreakdownEl.innerHTML = '';
+            for (const [key, value] of Object.entries(results.benefits)) {
+                if (value > 0) {
+                    const p = document.createElement('p');
+                    p.className = 'text-sm text-blue-700 ml-4';
+                    p.textContent = `- ${key}: ${formatYen(value)}`;
+                    benefitBreakdownEl.appendChild(p);
+                }
+            }
+
+            populateBasisText(results);
+            updateBurdenChart(results.burdens);
+            updateSpendingChart(results.totalBurden);
+            
+            resultContainer.classList.add('visible');
+        }
+
+        function populateBasisText(results) {
+            const formatYenFull = (val) => new Intl.NumberFormat('ja-JP').format(Math.round(val)) + '円';
+            
+            let burdenHtml = `
+                <li><strong>所得税・住民税:</strong> 基礎控除、給与所得控除（会社員の場合）、社会保険料控除、配偶者控除、扶養控除を考慮して課税所得を計算しています。所得税と住民税では各控除額が異なるため、それぞれ別に計算しています。扶養控除は、高校生の年代の子ども（一般扶養親族）、19歳〜69歳の親族（特定扶養親族）、70歳以上の親族（老人扶養親族・別居を想定）を対象としています。生命保険料控除や医療費控除など、その他の個人的な控除は含んでいません。</li>
+                <li><strong>社会保険料:</strong> 「会社員」は健康保険・厚生年金、「自営業」は国民健康保険・国民年金を想定。料率は選択された都道府県と年齢に基づき、40歳以上は介護保険料が加算されます。</li>
+                <li><strong>消費税(推計):</strong> 年収と年齢から平均的な消費支出（今回の場合、年間 <strong>${formatYenFull(results.details.consumptionExpenditure)}</strong>）を「家計調査（総務省統計局）」を参考に推計し、税率10%で算出しています。</li>
+            `;
+
+            let otherTaxesHtml = '<li><strong>その他諸税(推計):</strong> ライフスタイルの選択に応じて下記の税額を概算で加算しています。<ul>';
+            let hasOtherTaxes = false;
+
+            const homeChoice = homeOwnershipSelect.value;
+            if (homeChoice !== 'none') { hasOtherTaxes = true; otherTaxesHtml += `<li>固定資産税など: 持ち家の評価額に応じた標準税率（1.4%）を仮定。</li>`; }
+            const carChoice = carOwnershipSelect.value;
+            if (carChoice !== 'none') { hasOtherTaxes = true; otherTaxesHtml += `<li>自動車関連税: ${carChoice === 'light' ? '軽自動車' : '普通自動車'}の自動車税・重量税などを想定。</li>`; }
+            const smokingChoice = smokingHabitSelect.value;
+            if (smokingChoice !== 'none') { hasOtherTaxes = true; otherTaxesHtml += `<li>たばこ税: ${smokingChoice === 'daily' ? '1日1箱' : '週に数本'}の消費を仮定。</li>`; }
+            const drinkingChoice = drinkingHabitSelect.value;
+            if (drinkingChoice !== 'none') { hasOtherTaxes = true; otherTaxesHtml += `<li>酒税: ${drinkingChoice === 'often' ? 'ビール類を週3日' : '週1日'}程度飲むと仮定。</li>`; }
+            const golfChoice = golfHabitSelect.value;
+            if (golfChoice !== 'none') { hasOtherTaxes = true; otherTaxesHtml += `<li>ゴルフ場利用税: ${golfChoice === 'often' ? '年間30回' : '年間10回'}程度の利用を仮定（1回800円）。</li>`; }
+            
+            if (hasOtherTaxes) { burdenHtml += otherTaxesHtml + '</ul></li>'; }
+
+            burdenHtml += `<li>※住民税の「均等割」や、自営業者の「国民年金保険料」は所得が低い場合でも定額で発生するため、年収が低くても負担額が0円にならないことがあります（自治体による減免措置は未対応）。</li>`;
+
+
+            let benefitHtml = `
+                <li><strong>医療費補助:</strong> あなたの年齢（${results.details.ageBracket}代）の1人あたり年間平均医療費（約${formatYenFull(results.details.medicalBenefit / 0.7)}）から、自己負担分を引いた実質的な公費負担額を推計しています。これは直接的な現金給付ではなく、医療サービス利用時の費用軽減という形でのサポートです。</li>
+                <li><strong>児童手当:</strong> 2024年10月から拡充された制度に基づき計算しています。所得制限はなく、高校生の年代までが対象となります。第3子以降は月額3万円で計算しています（子の年齢による詳細な金額差は簡略化）。</li>
+            `;
+            if (results.benefits['年金給付'] > 0) {
+                benefitHtml += `<li><strong>年金給付:</strong> 65歳以上で「はい」を選択した場合、国民年金・厚生年金を合算した平均的な受給額（年額約${formatYenFull(DATA.averagePensionBenefit)}）を給付に加えています。</li>`;
+            }
+            benefitHtml += `<li>※上記は代表例です。実際のサポートは、失業、障害、低所得など個別の状況に応じて多岐にわたりますが、本シミュレーションでは簡略化しています。</li>`;
+
+            basisTextContainer.innerHTML = `
+                <p>このシミュレーションは、公開されている情報に基づき、いくつかの仮定を置いて計算しています。あなたの生活をより良くするための、あくまで「考えるきっかけ」としてご活用ください。（2025年度の制度・2024年度の予算に基づく）</p>
+                <div class="p-4 bg-slate-50 rounded-lg">
+                    <h5 class="font-bold text-slate-700">負担（税金・社会保険料）の計算について</h5>
+                    <ul class="mt-2 space-y-3">${burdenHtml}</ul>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-lg">
+                    <h5 class="font-bold text-slate-700">公的サポートの計算について</h5>
+                    <ul class="mt-2 space-y-3">${benefitHtml}</ul>
+                </div>
+                 <div class="p-4 bg-slate-50 rounded-lg">
+                    <h5 class="font-bold text-slate-700">「負担額の使われ方」グラフについて</h5>
+                    <p class="mt-2 text-xs md:text-sm">このグラフは、あなたの総負担額が、国の一般会計歳出予算（2024年度）の割合に応じて、どの分野に配分されるかを視覚化したものです。</p>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-lg">
+                    <h5 class="font-bold text-slate-700">出典情報</h5>
+                    <ul class="mt-2 space-y-3">
+                        <li><a href="https://www.nta.go.jp/" target="_blank" class="text-indigo-600 hover:underline">国税庁</a> (所得税)</li>
+                        <li><a href="https://www.kyoukaikenpo.or.jp/" target="_blank" class="text-indigo-600 hover:underline">全国健康保険協会</a> (健康保険料率)</li>
+                        <li><a href="https://www.mhlw.go.jp/" target="_blank" class="text-indigo-600 hover:underline">厚生労働省</a> (社会保険料、医療費、年金)</li>
+                        <li><a href="https://www.mof.go.jp/policy/budget/budger_workflow/budget/index.html" target="_blank" class="text-indigo-600 hover:underline">財務省</a> (国の予算)</li>
+                        <li><a href="https://www.stat.go.jp/data/kakei/index.html" target="_blank" class="text-indigo-600 hover:underline">総務省統計局</a> (家計調査)</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Chart.js Datalabels Pluginの登録
+        Chart.register(ChartDataLabels);
+
+        function updateBurdenChart(burdens) {
+            const ctx = document.getElementById('burden-chart').getContext('2d');
+            const labels = Object.keys(burdens).filter(k => burdens[k] > 0.1);
+            const data = labels.map(l => burdens[l]);
+
+            if (burdenChart) burdenChart.destroy();
+            burdenChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#4f46e5', '#6366f1', '#34d399', '#6ee7b7', '#a5b4fc', '#fbbf24', '#f59e0b'],
+                        borderColor: '#fff', borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 15 }},
+                        tooltip: { callbacks: { label: (c) => `${c.label}: ${new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(c.parsed)}` }},
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                let percentage = (value * 100 / sum);
+                                if (percentage < 5) return '';
+                                return `${Math.round(value/10000)}万円`;
+                            },
+                            color: '#fff',
+                            font: { weight: 'bold', size: 10, }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSpendingChart(totalBurden) {
+            const ctx = document.getElementById('spending-chart').getContext('2d');
+            const labels = Object.keys(DATA.nationalSpendingRatio);
+            const data = labels.map(l => totalBurden * DATA.nationalSpendingRatio[l]);
+            
+            if (spendingChart) spendingChart.destroy();
+            spendingChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6'],
+                        borderColor: '#fff', borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 15 }},
+                        tooltip: { callbacks: { label: (c) => `${c.label}: ${new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(c.parsed)}` }},
+                        datalabels: {
+                             formatter: (value, ctx) => {
+                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                let percentage = (value * 100 / sum);
+                                if (percentage < 5) return '';
+                                return `${Math.round(value/10000)}万円`;
+                            },
+                            color: '#fff',
+                            font: { weight: 'bold', size: 10, }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Event Listeners ---
+        calculateBtn.addEventListener('click', calculate);
+        ageInput.addEventListener('input', handleAgeChange);
+
+        window.addEventListener('load', () => {
+             populatePrefectures();
+             handleAgeChange();
+             resultContainer.classList.remove('visible');
+             // 初期計算を実行
+             calculate();
+        });
+
+    </script>
+</body>
+</html>
