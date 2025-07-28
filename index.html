@@ -66,6 +66,9 @@
         input[type=number] {
             -moz-appearance: textfield;
         }
+        input[type=tel] {
+            -moz-appearance: textfield;
+        }
         .btn-primary {
             transition: all 0.2s ease-in-out;
         }
@@ -100,17 +103,17 @@
                         <!-- 年収 -->
                         <div>
                             <label for="annual-income" class="block text-sm font-medium text-slate-700 mb-1">あなたの年収（額面）</label>
-                            <div class="flex items-center bg-slate-100 rounded-lg focus-within:ring-2 focus-within:ring-indigo-400">
-                                <input type="number" id="annual-income" class="w-full bg-transparent text-2xl font-bold p-3 text-indigo-600 focus:outline-none" value="500" placeholder="例: 500">
-                                <span class="text-lg font-semibold pr-4 text-slate-600">万円</span>
+                            <div class="flex items-baseline bg-slate-100 rounded-lg focus-within:ring-2 focus-within:ring-indigo-400 p-3">
+                                <input type="tel" inputmode="numeric" pattern="[0-9,]*" id="annual-income" class="flex-1 w-full bg-transparent text-2xl font-bold text-indigo-600 focus:outline-none" value="500" placeholder="例: 500">
+                                <span class="text-lg font-semibold text-slate-600 ml-2">万円</span>
                             </div>
                         </div>
                         <!-- 年齢 -->
                         <div>
                             <label for="age" class="block text-sm font-medium text-slate-700 mb-1">年齢</label>
-                            <div class="flex items-center bg-slate-100 rounded-lg focus-within:ring-2 focus-within:ring-indigo-400">
-                                <input type="number" id="age" class="w-full bg-transparent text-2xl font-bold p-3 text-slate-800 focus:outline-none" value="35" placeholder="例: 35">
-                                <span class="text-lg font-semibold pr-4 text-slate-600">歳</span>
+                            <div class="flex items-baseline bg-slate-100 rounded-lg focus-within:ring-2 focus-within:ring-indigo-400 p-3">
+                                <input type="tel" inputmode="numeric" pattern="[0-9]*" id="age" class="flex-1 w-full bg-transparent text-2xl font-bold text-slate-800 focus:outline-none" value="35" placeholder="例: 35">
+                                <span class="text-lg font-semibold text-slate-600 ml-2">歳</span>
                             </div>
                         </div>
                     </div>
@@ -263,7 +266,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-blue-800">（一方で、あなたが直接的に受けられる主な公的サポートはこちらです）</p>
+                                    <p class="text-sm font-medium text-blue-800">（一方で、あなたが受けられる主な公的サポートはこちらです）</p>
                                     <p id="summary-benefit" class="text-lg text-blue-800 mt-2">公的サポート合計 <span class="text-2xl font-bold">---万円</span></p>
                                     <div id="benefit-breakdown" class="mt-2 space-y-1"></div>
                                 </div>
@@ -451,7 +454,8 @@
         // --- Calculation Logic ---
         function calculate() {
             // 1. Get user inputs
-            const income = parseFloat(annualIncomeInput.value) * 10000;
+            const incomeValue = annualIncomeInput.value.replace(/,/g, '');
+            const income = parseFloat(incomeValue) * 10000;
             const age = parseInt(ageInput.value);
             if (isNaN(income) || income < 0 || isNaN(age) || age <= 0) {
                 console.error('年収と年齢を正しく入力してください。');
@@ -626,7 +630,7 @@
 
         // --- UI Update Logic ---
         function updateUI(results) {
-            const formatYen = (val, unit = '万円') => `${(Math.round(val / 10000))}${unit}`;
+            const formatYen = (val, unit = '万円') => `${new Intl.NumberFormat('ja-JP').format(Math.round(val / 10000))}${unit}`;
             
             netIncomeEl.textContent = formatYen(results.netIncome);
             
@@ -844,13 +848,19 @@
         // --- Event Listeners ---
         calculateBtn.addEventListener('click', calculate);
         ageInput.addEventListener('input', handleAgeChange);
+        annualIncomeInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/,/g, '');
+            if (!isNaN(value) && value.length > 0) {
+                e.target.value = new Intl.NumberFormat('ja-JP').format(value);
+            } else if (value === '') {
+                e.target.value = '';
+            }
+        });
 
         window.addEventListener('load', () => {
              populatePrefectures();
              handleAgeChange();
              resultContainer.classList.remove('visible');
-             // 初期計算を実行
-             // calculate();
         });
 
     </script>
