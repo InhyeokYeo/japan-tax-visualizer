@@ -848,12 +848,15 @@
         // --- Event Listeners ---
         calculateBtn.addEventListener('click', calculate);
         ageInput.addEventListener('input', handleAgeChange);
-        annualIncomeInput.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/,/g, '');
+        
+        annualIncomeInput.addEventListener('focus', (e) => {
+            e.target.value = e.target.value.replace(/,/g, '');
+        });
+
+        annualIncomeInput.addEventListener('blur', (e) => {
+            const value = e.target.value.replace(/,/g, '');
             if (!isNaN(value) && value.length > 0) {
                 e.target.value = new Intl.NumberFormat('ja-JP').format(value);
-            } else if (value === '') {
-                e.target.value = '';
             }
         });
 
